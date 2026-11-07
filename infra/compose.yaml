@@ -49,6 +49,27 @@ services:
     pids_limit: 128
     stop_grace_period: 15s
 
+  gateway:
+    image: posostavu-pwa:local
+    build:
+      context: ..
+      dockerfile: apps/pwa/Dockerfile
+      target: runtime
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8080}:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 15s
+
   migrate:
     profiles: [tools]
     image: posostavu-migrate:local

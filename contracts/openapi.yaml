@@ -8,8 +8,10 @@ info:
     Неизвестные маршруты возвращают HTTP 404 с ErrorResponse и кодом not_found.
     Ошибки шлюза и сетевые ошибки находятся за пределами этого контракта приложения.
 servers:
+  - url: http://127.0.0.1:8080/api
+    description: Общий локальный шлюз; порт задаётся WEB_PORT, префикс /api удаляется перед Go API
   - url: http://127.0.0.1:8081
-    description: Локальный API
+    description: Прямой локальный доступ к API; порт задаётся API_PORT
 security: []
 tags:
   - name: Health
