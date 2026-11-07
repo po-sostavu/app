@@ -17,7 +17,7 @@ API MUST проверять обязательные параметры PostgreS
 
 ### Requirement: Жизнь и готовность сервиса
 
-API MUST предоставлять GET `/livez` и GET `/readyz`. Проверка жизни не зависит от PostgreSQL; готовность зависит от доступности PostgreSQL и имеет конечный тайм-аут.
+API MUST предоставлять GET `/livez` и GET `/readyz`. Проверка жизни не зависит от PostgreSQL. Готовность зависит от доступности PostgreSQL и имеет конечный тайм-аут.
 
 #### Scenario: PostgreSQL доступна
 
