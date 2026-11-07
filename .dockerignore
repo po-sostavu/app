@@ -1,0 +1,12 @@
+**
+!.prettierrc.json
+!.prettierignore
+!apps
+!apps/pwa
+!apps/pwa/**
+apps/pwa/node_modules
+apps/pwa/dist
+apps/pwa/coverage
+apps/pwa/.env
+apps/pwa/.env.*
+apps/pwa/AGENTS.md
