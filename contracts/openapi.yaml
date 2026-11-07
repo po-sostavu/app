@@ -9,9 +9,9 @@ info:
     Ошибки шлюза и сетевые ошибки находятся за пределами этого контракта приложения.
 servers:
   - url: http://127.0.0.1:8080/api
-    description: Общий локальный шлюз; порт задаётся WEB_PORT, префикс /api удаляется перед Go API
+    description: Общий локальный шлюз. Порт задаётся WEB_PORT, префикс /api удаляется перед Go API
   - url: http://127.0.0.1:8081
-    description: Прямой локальный доступ к API; порт задаётся API_PORT
+    description: Прямой локальный доступ к API. Порт задаётся API_PORT
 security: []
 tags:
   - name: Health
@@ -61,7 +61,7 @@ paths:
 components:
   headers:
     RequestID:
-      description: Серверный идентификатор запроса; входящий X-Request-ID не используется
+      description: Серверный идентификатор запроса. Входящий X-Request-ID не используется
       schema:
         type: string
         minLength: 1
