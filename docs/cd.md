@@ -40,18 +40,20 @@ Job deploy получает SSH-ключ только после одобрен�
 
 ## Установка на сервер
 
-Эти команды предназначены для отдельной согласованной установки из проверенного checkout. Они не выполняются из workflow. Сначала сверить существующие файлы и сохранить текущую заглушку деплоя.
+Инструменты находятся в `tools/delivery`: `cmd/release` передаёт и публикует образы, `cmd/deploy` обрабатывает запрос на VPS, `cmd/smoke` проверяет изолированный стенд. Модуль использует только стандартную библиотеку Go.
+
+Эти команды предназначены для отдельной согласованной установки из проверенного checkout. Они не выполняются из workflow. Сначала собрать бинарник командой `task cd:build`, сверить существующие файлы и сохранить текущую заглушку деплоя. Команда собирает Linux amd64 независимо от ОС разработчика. На VPS передаётся готовый бинарник и конфигурация.
 
 ```sh
 sudo install -d -o root -g root -m 0755 /opt/po-sostavu/deploy
 sudo install -d -o root -g root -m 0700 /opt/po-sostavu/secrets
-sudo install -o root -g root -m 0755 infra/production/deploy.py /usr/local/sbin/posostavu-deploy
+sudo install -o root -g root -m 0755 tools/delivery/bin/posostavu-deploy /usr/local/sbin/posostavu-deploy
 sudo install -o root -g root -m 0644 infra/production/compose.*.yaml infra/production/Caddyfile /opt/po-sostavu/deploy/
 sudo install -o root -g root -m 0644 infra/postgres/init.sh /opt/po-sostavu/deploy/init.sh
 sudo install -o root -g root -m 0600 infra/production/config.example.json /opt/po-sostavu/deploy/config.json
 ```
 
-Требуются Python 3.10+, Docker и Compose 2.30+ с `env_file.format: raw`. На обследованном сервере Compose 2.39.2. Дополнительные Python-пакеты не нужны.
+На VPS требуются Docker и Compose 2.30+ с `env_file.format: raw`. На обследованном сервере Compose 2.39.2. Обработчик собирается с CGO_ENABLED=0, компилятор Go и интерпретаторы на VPS ему не нужны.
 
 Сохранить существующие forced command и ограничение sudo только на `/usr/local/sbin/posostavu-deploy`. Ключ не получает интерактивную оболочку, forwarding, группу docker или право редактировать серверные файлы. Обработчик не принимает аргументы командной строки. Один JSON до 4096 байт передаётся через stdin и проверяется до операций Docker. Переменная `SSH_ORIGINAL_COMMAND` не интерпретируется.
 
@@ -94,7 +96,7 @@ sudo install -o root -g root -m 0600 infra/production/config.example.json /opt/p
 
 ## Проверки и границы
 
-`task cd:check` запускает тесты валидации, архивов, идемпотентности и отказов. На Windows проверки файловой блокировки и атомарной записи пропускаются, на Linux CI выполняются все.
+`task cd:check` проверяет gofmt, запускает go vet и тесты валидации, архивов, идемпотентности и отказов. `task cd:build` собирает обработчик для Linux. В CI дополнительно выполняются race detector и сборка. На Windows пропускается проверка Linux-блокировки файлов, на Linux CI выполняются все.
 
 Задание `Delivery integration` использует четыре образа из CI, отдельные случайные имена проектов, синтетические пароли и собственный Traefik. Оно проверяет реальные миграции, два цвета, переключение, откат, сохранение данных и старой статики. После теста удаляются только созданные им ресурсы. Проверка использует HTTP на loopback и не подтверждает ACME или HTTPS рабочего VPS.
 

@@ -17,8 +17,7 @@ apps/api/migrations/.create.lock
 .task/
 
 # Серверные настройки, архивы и состояние CD
-**/__pycache__/
-*.pyc
+tools/delivery/bin/
 infra/production/config.json
 infra/production/*.env
 infra/production/state.json

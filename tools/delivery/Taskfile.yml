@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  fmt:
+    desc: Отформатировать Go-инструменты доставки
+    cmds:
+      - gofmt -w cmd internal
+
+  fmt:check:
+    desc: Проверить формат Go-инструментов доставки
+    cmds:
+      - |
+        files="$(gofmt -l cmd internal)" || exit 1
+        if [ -n "$files" ]; then
+          printf '%s\n' "$files"
+          exit 1
+        fi
+
+  check:
+    desc: Проверить формат, Go vet и тесты доставки
+    cmds:
+      - task: fmt:check
+      - go vet ./...
+      - go test ./...
+
+  test:race:
+    desc: Проверить гонки памяти в инструментах доставки
+    cmds:
+      - go test -race ./...
+
+  build:
+    desc: Собрать серверный обработчик для Linux amd64
+    env:
+      CGO_ENABLED: '0'
+      GOOS: linux
+      GOARCH: amd64
+    cmds:
+      - go build -trimpath -o bin/posostavu-deploy ./cmd/deploy

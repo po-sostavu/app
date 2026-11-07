@@ -37,6 +37,11 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+      - name: Set up Go for artifact transfer
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/delivery/go.mod
+          cache: false
       - name: Download images from the successful CI attempt
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -53,7 +58,7 @@ jobs:
           GHCR_TOKEN: ${{ github.token }}
           CHECKED_SHA: ${{ github.event.workflow_run.head_sha }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
-        run: python3 infra/cd/release.py publish "$RUNNER_TEMP/images" "$CHECKED_SHA" "$CI_RUN_ID" "$RUNNER_TEMP/release.json"
+        run: go -C tools/delivery run ./cmd/release publish "$RUNNER_TEMP/images" "$CHECKED_SHA" "$CI_RUN_ID" "$RUNNER_TEMP/release.json" "$GITHUB_WORKSPACE/infra/production/release-policy.json"
       - name: Save release digests
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -80,13 +85,18 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+      - name: Set up Go for registry verification
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/delivery/go.mod
+          cache: false
       - name: Download release digests
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-${{ github.event.workflow_run.head_sha }}
           path: ${{ runner.temp }}/release
       - name: Verify public images
-        run: python3 infra/cd/release.py check-public "$RUNNER_TEMP/release/release.json"
+        run: go -C tools/delivery run ./cmd/release check-public "$RUNNER_TEMP/release/release.json"
       - name: Deploy through the forced SSH entry point
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
