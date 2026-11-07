@@ -96,6 +96,8 @@ def load_images(directory, sha):
 
 def registry_manifest(name, reference, authenticated=False):
     """Return the manifest and its digest. A 404 is distinct from access failure."""
+    require(name in IMAGES and re.fullmatch(r"(?:[a-f0-9]{40}|sha256:[a-f0-9]{64})", reference),
+            "Invalid registry reference")
     repository = f"po-sostavu/app-{name}"
     query = urllib.parse.urlencode(dict(service="ghcr.io", scope=f"repository:{repository}:pull"))
     request = urllib.request.Request(f"https://ghcr.io/token?{query}")

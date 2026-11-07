@@ -129,13 +129,13 @@ def retain_assets(stream, directory):
                 continue
             require(re.fullmatch(r"[a-zA-Z0-9_@+./-]+", str(path)), "Invalid asset filename")
             target = directory.joinpath(*path.parts)
+            for ancestor in (target.parent, *target.parent.parents):
+                require(not ancestor.is_symlink(), "Asset directory symlink")
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
             for parent in (target.parent, *target.parent.parents):
                 if parent == directory.parent:
                     break
                 os.chmod(parent, 0o755)
-            for ancestor in (target.parent, *target.parent.parents):
-                require(not ancestor.is_symlink(), "Asset directory symlink")
             require(not target.is_symlink(), "Asset symlink")
             with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as output:
                 temporary = Path(output.name)
@@ -331,6 +331,9 @@ class Deployment:
             os.chmod(directory, mode)
         write_json(self.journal, {"release": release, "color": color, "phase": "preparation"})
         migration_started = False
+        switch_started = False
+        committed = False
+        previous_route = self.route.read_bytes() if self.route.exists() else None
         try:
             self.pull(release)
             database = state["database"] if state else release
@@ -349,13 +352,27 @@ class Deployment:
             self.compose(release, color, "up", "-d", "--no-build", "--wait", "--wait-timeout", "120", "api", "gateway")
             self.inspect_candidate(release, color)
             write_json(self.journal, {"release": release, "color": color, "phase": "switch"})
+            switch_started = True
             self.switch(release, color)
             new_state = dict(release=release, color=color, database=database,
                              highest_run_id=max(release["run_id"], state["highest_run_id"] if state else 0),
                              previous={"release": state["release"], "color": state["color"]} if state else None)
             write_json(self.state_path, new_state)
+            committed = True
             self.journal.unlink()
         except BaseException:
+            if switch_started and not committed:
+                if previous_route is None:
+                    self.route.unlink(missing_ok=True)
+                else:
+                    atomic_write(self.route, previous_route, 0o644)
+            if switch_started and not committed and state:
+                # switch() restores the previous route before propagating an error.
+                # Keep the journal even if the restored route is healthy.
+                try:
+                    self.public_check(state["release"])
+                except (OSError, ValueError):
+                    print("Restored route needs administrator verification", file=sys.stderr)
             if not migration_started and not rollback:
                 self.journal.unlink(missing_ok=True)
             raise
@@ -369,6 +386,7 @@ def load_config(root):
     files = root / "deploy"
     for name in ("config.json", "compose.database.yaml", "compose.application.yaml", "Caddyfile", "init.sh"):
         trusted(files / name)
+    secret_values = {}
     for name in ("postgres", "api", "migrate"):
         path = root / "secrets" / (name + ".env")
         trusted(path, private=True)
@@ -376,6 +394,11 @@ def load_config(root):
                       if line and not line.startswith("#"))
         expected = {"POSTGRES_PASSWORD", "APP_DB_PASSWORD", "MIGRATOR_DB_PASSWORD"} if name == "postgres" else {"DB_PASSWORD"}
         require(set(values) == expected and all(len(value) >= 24 for value in values.values()), "Missing or weak database secret")
+        secret_values[name] = values
+    passwords = secret_values["postgres"]
+    require(len(set(passwords.values())) == 3, "Database roles must have different passwords")
+    require(secret_values["api"]["DB_PASSWORD"] == passwords["APP_DB_PASSWORD"], "API database secret mismatch")
+    require(secret_values["migrate"]["DB_PASSWORD"] == passwords["MIGRATOR_DB_PASSWORD"], "Migration database secret mismatch")
     config = json.loads((files / "config.json").read_text(), object_pairs_hook=unique_object)
     require(config.get("enabled") is True and config.get("recovery_verified") is True, "Production has not been enabled and recovery verified")
     require(re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", config["domain"]), "Invalid domain")

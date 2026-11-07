@@ -74,6 +74,16 @@ class InputTests(unittest.TestCase):
                 release.publish(Path("unused"), "a" * 40, 1, Path("unused"))
             docker.assert_not_called()
 
+    def test_publication_reuses_matching_tags(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(release, "load_images", return_value={name: "sha256:same" for name in release.IMAGES}), \
+                patch.object(release, "registry_manifest", return_value=({"config": {"digest": "sha256:same"}}, "sha256:digest")), \
+                patch.object(release, "docker") as docker:
+            output = Path(directory) / "release.json"
+            release.publish(Path("unused"), "a" * 40, 123, output)
+            docker.assert_not_called()
+            self.assertEqual(set(json.loads(output.read_text())["images"]), set(release.IMAGES))
+
 
 class AssetsTests(unittest.TestCase):
     def test_preserves_both_releases_without_overwriting_entrypoint(self):
@@ -128,6 +138,9 @@ class FakeDeployment(deploy.Deployment):
         if self.failure == "public":
             raise ValueError("Public check failed")
 
+    def public_check(self, release):
+        self.operations.append("restored-check")
+
     def compose(self, release, color, *args, **kwargs):
         self.operations.append((color, args))
         if "migrate" in args and self.failure == "migration":
@@ -137,6 +150,24 @@ class FakeDeployment(deploy.Deployment):
 
 @unittest.skipUnless(sys.platform == "linux", "Atomic directory fsync is tested on Linux CI")
 class DeploymentTests(unittest.TestCase):
+    def test_failed_state_commit_restores_route(self):
+        with tempfile.TemporaryDirectory() as directory:
+            engine = FakeDeployment(Path(directory))
+            engine.execute(manifest())
+            route = engine.route.read_bytes()
+            original_write = deploy.write_json
+
+            def fail_state(path, data):
+                if path == engine.state_path:
+                    raise OSError("Disk full")
+                original_write(path, data)
+
+            with patch.object(deploy, "write_json", side_effect=fail_state):
+                with self.assertRaises(OSError):
+                    engine.execute(manifest(2))
+            self.assertEqual(engine.route.read_bytes(), route)
+            self.assertTrue(engine.journal.exists())
+
     def test_two_colors_idempotence_rollback_and_shared_database(self):
         with tempfile.TemporaryDirectory() as directory:
             engine = FakeDeployment(Path(directory))
