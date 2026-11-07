@@ -16,7 +16,7 @@ RUN apk add --no-cache 'zlib>=1.4-r0' \
     && addgroup -S -g 10001 pwa \
     && adduser -S -u 10001 -G pwa pwa \
     && chown -R pwa:pwa /data /config
-COPY apps/pwa/Caddyfile /etc/caddy/Caddyfile
+COPY infra/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/pwa/dist /srv
 USER pwa
 EXPOSE 8080
