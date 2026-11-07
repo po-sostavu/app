@@ -13,6 +13,11 @@ tasks:
     cmds:
       - task --list
 
+  cd:check:
+    desc: Проверить валидацию выпуска, сохранение файлов и сценарии отказов CD
+    cmds:
+      - python -B -m unittest discover -s infra/tests -v
+
   db:up:
     desc: Запустить локальную PostgreSQL
     cmds:
