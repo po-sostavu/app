@@ -1,0 +1,4 @@
+{
+  "rollback_compatible": true,
+  "scope": "Current application scaffold. Before release, verify additive migrations and both directions of PWA/API compatibility."
+}

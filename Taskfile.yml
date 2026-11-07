@@ -4,6 +4,9 @@ includes:
   api:
     taskfile: ./apps/api/Taskfile.yml
     dir: ./apps/api
+  cd:
+    taskfile: ./tools/delivery/Taskfile.yml
+    dir: ./tools/delivery
 
 vars:
   COMPOSE_ENV: infra/.env
