@@ -20,13 +20,13 @@ func AtomicWrite(name string, data []byte, mode os.FileMode) error {
 		return err
 	}
 	temporary := file.Name()
-	defer os.Remove(temporary)
+	defer func() { _ = os.Remove(temporary) }()
 	if _, err := file.Write(data); err != nil {
-		file.Close()
+		_ = file.Close()
 		return err
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
+		_ = file.Close()
 		return err
 	}
 	if err := file.Close(); err != nil {
@@ -71,7 +71,7 @@ func fileHash(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func RetainAssets(input io.Reader, directory string) error {
 		if total > 256*1024*1024 || count > 10000 {
 			return errors.New("static archive exceeds limits")
 		}
-		if !(strings.HasPrefix(name, "assets/") || workboxPattern.MatchString(name)) {
+		if !strings.HasPrefix(name, "assets/") && !workboxPattern.MatchString(name) {
 			continue
 		}
 		if !assetPattern.MatchString(name) {
@@ -148,7 +148,7 @@ func retainFile(input io.Reader, target string, size int64) error {
 		return err
 	}
 	temporary := file.Name()
-	defer os.Remove(temporary)
+	defer func() { _ = os.Remove(temporary) }()
 	n, copyErr := io.Copy(file, input)
 	closeErr := file.Close()
 	if copyErr != nil || closeErr != nil {

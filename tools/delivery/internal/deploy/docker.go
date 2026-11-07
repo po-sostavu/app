@@ -193,7 +193,7 @@ func (d *DockerRuntime) Backup(r release.Release, sha string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	args = append(d.ComposeArgs(""), "exec", "-T", "--user", "postgres", "postgres", "pg_restore", "--list")
 	command = exec.CommandContext(ctx, "/usr/bin/docker", args...)
 	command.Env = d.Env(r, "")
@@ -274,7 +274,7 @@ func (d *DockerRuntime) Verify(r release.Release) error {
 			return err
 		}
 		_, copyErr := io.Copy(io.Discard, io.LimitReader(response.Body, 1024*1024))
-		response.Body.Close()
+		_ = response.Body.Close()
 		if copyErr != nil {
 			return copyErr
 		}
@@ -328,7 +328,7 @@ func (d *DockerRuntime) ReadAsset(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != 200 {
 		return nil, errors.New("asset unavailable")
 	}

@@ -67,7 +67,7 @@ func Checksum(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
@@ -95,7 +95,7 @@ func Export(name, sha, directory string) error {
 	}
 	writer, err := gzip.NewWriterLevel(file, gzip.BestSpeed)
 	if err != nil {
-		file.Close()
+		_ = file.Close()
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)

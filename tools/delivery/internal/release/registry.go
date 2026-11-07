@@ -45,7 +45,7 @@ func (c RegistryClient) Manifest(name, reference string) (*Manifest, error) {
 	}
 	var token struct{ Token string }
 	err = json.NewDecoder(io.LimitReader(response.Body, 65536)).Decode(&token)
-	response.Body.Close()
+	_ = response.Body.Close()
 	if response.StatusCode != 200 || err != nil || token.Token == "" {
 		return nil, errors.New("registry authentication failed")
 	}
@@ -59,7 +59,7 @@ func (c RegistryClient) Manifest(name, reference string) (*Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode == 404 {
 		return nil, nil
 	}

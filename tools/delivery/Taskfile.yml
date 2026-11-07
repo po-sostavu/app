@@ -17,11 +17,21 @@ tasks:
         fi
 
   check:
-    desc: Проверить формат, Go vet и тесты доставки
+    desc: Проверить формат, линтер и тесты доставки
     cmds:
       - task: fmt:check
-      - go vet ./...
+      - task: lint
       - go test ./...
+
+  lint:
+    desc: Проверить инструменты доставки линтером проекта
+    cmds:
+      - go tool '-modfile=../../apps/api/tools/go.mod' golangci-lint run --config ../../apps/api/.golangci.yml ./...
+
+  audit:
+    desc: Проверить инструменты доставки на известные уязвимости
+    cmds:
+      - go tool '-modfile=../../apps/api/tools/go.mod' govulncheck ./...
 
   test:race:
     desc: Проверить гонки памяти в инструментах доставки

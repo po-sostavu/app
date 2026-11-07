@@ -53,7 +53,12 @@ func run() error {
 func main() {
 	if err := run(); err != nil {
 		// Do not forward Docker output or environment values to the SSH client.
-		fmt.Fprintln(os.Stderr, "Deployment stopped. Check root-owned state and server logs before retrying.")
+		if deploy.Trusted(filepath.Join(deploy.Root, "deploy"), false) == nil {
+			_ = deploy.WriteJSON(filepath.Join(deploy.Root, "deploy", "last-error.json"), map[string]string{
+				"time": time.Now().UTC().Format(time.RFC3339), "error": err.Error(),
+			})
+		}
+		fmt.Fprintln(os.Stderr, "Deployment stopped. Review root-owned last-error.json and deployment state before retrying.")
 		os.Exit(1)
 	}
 }

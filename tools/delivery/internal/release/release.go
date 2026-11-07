@@ -79,7 +79,8 @@ func uniqueValue(d *json.Decoder, depth int) error {
 	if !ok {
 		return nil
 	}
-	if delim == '{' {
+	switch delim {
+	case '{':
 		seen := map[string]bool{}
 		for d.More() {
 			key, err := d.Token()
@@ -95,13 +96,13 @@ func uniqueValue(d *json.Decoder, depth int) error {
 				return err
 			}
 		}
-	} else if delim == '[' {
+	case '[':
 		for d.More() {
 			if err := uniqueValue(d, depth+1); err != nil {
 				return err
 			}
 		}
-	} else {
+	default:
 		return fmt.Errorf("unexpected JSON delimiter")
 	}
 	_, err = d.Token()

@@ -22,5 +22,6 @@ infra/production/config.json
 infra/production/*.env
 infra/production/state.json
 infra/production/in-progress.json
+infra/production/last-error.json
 *.dump
 *.tar.gz

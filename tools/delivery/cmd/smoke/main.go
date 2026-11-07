@@ -40,7 +40,7 @@ func run(repository string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(root)
+	defer func() { _ = os.RemoveAll(root) }()
 	files, secrets, routes := filepath.Join(root, "deploy"), filepath.Join(root, "secrets"), filepath.Join(root, "routes")
 	for _, directory := range []string{files, secrets, routes} {
 		if err := os.Mkdir(directory, 0755); err != nil {

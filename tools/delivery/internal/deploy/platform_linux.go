@@ -37,7 +37,7 @@ func syncDirectory(name string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return file.Sync()
 }
 
@@ -47,10 +47,10 @@ func Lock(name string) (func(), error) {
 		return nil, err
 	}
 	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		file.Close()
+		_ = file.Close()
 		return nil, err
 	}
-	return func() { file.Close() }, nil
+	return func() { _ = file.Close() }, nil
 }
 
 func FreeSpace(name string) (uint64, error) {
