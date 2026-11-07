@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine3.24@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+    environment:
+      POSTGRES_DB: posostavu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in infra/.env}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Set MIGRATOR_DB_PASSWORD in infra/.env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', 'posostavu']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+  api:
+    image: posostavu-api:local
+    build:
+      context: ../apps/api
+      target: api
+    environment:
+      HTTP_ADDR: :8081
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: posostavu
+      DB_USER: posostavu_app
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in infra/.env}
+      DB_SSLMODE: disable
+    ports:
+      - '127.0.0.1:${API_PORT:-8081}:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 15s
+
+  migrate:
+    profiles: [tools]
+    image: posostavu-migrate:local
+    build:
+      context: ../apps/api
+      target: migrate
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: posostavu
+      DB_USER: posostavu_migrator
+      DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Set MIGRATOR_DB_PASSWORD in infra/.env}
+      DB_SSLMODE: disable
+    volumes:
+      - ../apps/api/migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+
+volumes:
+  postgres_data:
