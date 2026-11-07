@@ -6,7 +6,7 @@
 - Стек: Go, Fiber v2, PostgreSQL, sqlx, golang-migrate, go-envconfig и стандартный `log/slog`. Зависимости — Go modules.
 - Форматирование — стандартный `gofmt` из версии Go проекта. Альтернативный форматтер не подключать.
 - Линтинг — golangci-lint v2 с конфигурацией `.golangci.yml`: `linters.default: none`, явно включены govet, staticcheck, errcheck, ineffassign и unused.
-- Линтинг запускать из `apps/api/` командой `task lint` или `go tool '-modfile=tools/go.mod' golangci-lint run ./...`. Версии golangci-lint и govulncheck зафиксированы в отдельном `tools/go.mod`; локальный запуск и будущий CI используют их без глобальной установки другой версии.
+- Линтинг запускать из `apps/api/` командой `task lint` или `go tool '-modfile=tools/go.mod' golangci-lint run ./...`. Версии golangci-lint и govulncheck зафиксированы в отдельном `tools/go.mod`; локальный запуск и CI используют их без глобальной установки другой версии.
 - В CI проверять формат без изменения файлов. Непустой вывод `gofmt -l` должен завершать проверку с ошибкой. Генерируемый и сторонний код исключать из форматирования и линтинга.
 - Бэкенд — одно приложение с модулями `profile`, `analysis`, `catalog`, `tracking`. `platform` содержит техническую инфраструктуру.
 - `cmd/api/main.go` использовать для сборки зависимостей и запуска приложения.

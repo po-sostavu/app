@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: 'true'
+
+jobs:
+  pwa:
+    name: PWA checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/pwa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: apps/pwa/.nvmrc
+          cache: npm
+          cache-dependency-path: apps/pwa/package-lock.json
+      - name: Use project npm version
+        run: |
+          npm_package_manager="$(node -p 'require("./package.json").packageManager')"
+          npm install --global "$npm_package_manager"
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check format, lint, FSD, types and tests
+        run: npm run check
+      - name: Build PWA
+        run: npm run build
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=low
+      - name: Audit all dependencies
+        run: npm audit --audit-level=moderate
+
+  api:
+    name: API checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: |
+            apps/api/go.sum
+            apps/api/tools/go.sum
+      - name: Install Task
+        run: |
+          GOBIN="$RUNNER_TEMP/ci-tools" go install github.com/go-task/task/v3/cmd/task@v3.54.0
+          echo "$RUNNER_TEMP/ci-tools" >> "$GITHUB_PATH"
+      - name: Check Go format
+        run: task api:fmt:check
+      - name: Lint Go
+        run: task api:lint
+      - name: Test with race detector
+        run: task api:test:race
+      - name: Build API and migrations
+        run: task api:build
+      - name: Audit Go dependencies
+        run: task api:audit
+
+  docker:
+    name: Docker (${{ matrix.image }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: pwa
+            context: .
+            dockerfile: apps/pwa/Dockerfile
+            target: runtime
+          - image: api
+            context: apps/api
+            dockerfile: apps/api/Dockerfile
+            target: api
+          - image: migrate
+            context: apps/api
+            dockerfile: apps/api/Dockerfile
+            target: migrate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build image
+        env:
+          IMAGE: ${{ matrix.image }}
+          BUILD_CONTEXT: ${{ matrix.context }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          BUILD_TARGET: ${{ matrix.target }}
+        run: >-
+          docker build --pull
+          --file "$DOCKERFILE"
+          --target "$BUILD_TARGET"
+          --tag "posostavu-${IMAGE}:ci"
+          "$BUILD_CONTEXT"
+
+  ci:
+    name: CI status
+    if: ${{ always() }}
+    needs: [pwa, api, docker]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require every check to succeed
+        env:
+          PWA_RESULT: ${{ needs.pwa.result }}
+          API_RESULT: ${{ needs.api.result }}
+          DOCKER_RESULT: ${{ needs.docker.result }}
+        run: |
+          printf 'PWA: %s\nAPI: %s\nDocker: %s\n' "$PWA_RESULT" "$API_RESULT" "$DOCKER_RESULT"
+          if [[ "$PWA_RESULT" != success || "$API_RESULT" != success || "$DOCKER_RESULT" != success ]]; then
+            echo '::error::All PWA, API and Docker checks must succeed.'
+            exit 1
+          fi
