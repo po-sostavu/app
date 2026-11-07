@@ -8,3 +8,10 @@
 node_modules/
 dist/
 coverage/
+
+# Локальные Go-бинарники и результаты проверок.
+apps/api/bin/
+apps/api/migrations/.create.lock
+*.test
+*.prof
+.task/
