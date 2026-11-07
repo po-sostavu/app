@@ -16,7 +16,7 @@ tasks:
   db:up:
     desc: Запустить локальную PostgreSQL
     cmds:
-      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --wait postgres
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait postgres
 
   api:up:
     desc: Собрать и запустить API с PostgreSQL в Docker

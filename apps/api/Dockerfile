@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:3.24.4@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a AS runtime
 
-RUN apk add --no-cache ca-certificates && \
+RUN apk add --no-cache ca-certificates 'zlib>=1.4-r0' && \
     addgroup -g 10001 app && \
     adduser -D -H -u 10001 -G app app
 USER 10001:10001

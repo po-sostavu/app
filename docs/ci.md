@@ -12,16 +12,19 @@ Workflow `CI` запускается при открытии, обновлени
 
 ## Что проверяется
 
-| Задание   | Проверки                                                                                                 |
-| --------- | -------------------------------------------------------------------------------------------------------- |
-| PWA       | `npm ci`, `npm run check`, `npm run build`; аудит зависимостей                                           |
-| API       | `task api:fmt:check`, `task api:lint`, `task api:test:race`, `task api:build`, `task api:audit` из корня |
-| Docker    | Сборка PWA, API и отдельного инструмента миграций                                                        |
-| CI status | Итог результатов всех заданий                                                                            |
+| Задание           | Проверки                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| PWA               | `npm ci`, `npm run check`, `npm run build`; аудит зависимостей                                           |
+| API               | `task api:fmt:check`, `task api:lint`, `task api:test:race`, `task api:build`, `task api:audit` из корня |
+| Docker (pwa)      | Сборка статики PWA и общего шлюза, target `runtime`                                                      |
+| Docker (api)      | Сборка Go API, target `api`                                                                              |
+| Docker (migrate)  | Сборка отдельного инструмента миграций, target `migrate`                                                 |
+| Docker (postgres) | Сборка локального PostgreSQL с обновлённой zlib, target `runtime`                                        |
+| CI status         | Итог результатов всех заданий                                                                            |
 
 `npm run check` включает Prettier, ESLint, Steiger, проверку типов TypeScript и существующие тесты Vitest. Go-тесты запускаются с race detector; отдельный повтор обычного `go test` не нужен. Форматирование в CI только проверяется, файлы автоматически не исправляются.
 
-Сборочный контекст PWA — корень репозитория, Dockerfile — `apps/pwa/Dockerfile`. API и миграции собираются из `apps/api`, цели — `api` и `migrate`. Образы не публикуются, контейнеры не разворачиваются. Успешная сборка не заменяет проверку запуска приложения или аудит содержимого базового образа.
+Сборочный контекст PWA — корень репозитория, Dockerfile — `apps/pwa/Dockerfile`. API и миграции собираются из `apps/api`, цели — `api` и `migrate`. PostgreSQL собирается из `infra/postgres`, цель — `runtime`. Матрица включает четыре Docker-сборки. Образы не публикуются, контейнеры не разворачиваются. Успешная сборка не заменяет проверку запуска приложения или аудит содержимого базового образа.
 
 Существующие тесты каркасов не проверяют ещё не реализованные продуктовые сценарии. PostgreSQL и внешние OCR/ИИ API для этих заданий не запускаются. Интеграционные проверки с отдельной PostgreSQL добавляются вместе с бизнес-инвариантами, зависящими от БД.
 
@@ -62,6 +65,7 @@ task api:audit
 docker build -f apps/pwa/Dockerfile -t posostavu-pwa:ci .
 docker build --target api -t posostavu-api:ci apps/api
 docker build --target migrate -t posostavu-migrate:ci apps/api
+docker build --target runtime -t posostavu-postgres:ci infra/postgres
 ```
 
 ## Слияние и дальнейшее подключение
