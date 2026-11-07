@@ -1,0 +1,16 @@
+html {
+  min-width: 320px;
+  scroll-padding-top: calc(76px + env(safe-area-inset-top, 0px));
+  scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+body {
+  margin: 0;
+}
+#root {
+  min-height: 100dvh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mantine-color-eco-6);
+  outline-offset: 4px;
+}

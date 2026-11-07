@@ -1,0 +1,9 @@
+**/node_modules/**
+**/dist/**
+**/coverage/**
+**/package-lock.json
+**/AGENTS.md
+**/.env*
+.git/**
+.agents/**
+.codex/**
