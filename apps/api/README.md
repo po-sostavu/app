@@ -64,7 +64,7 @@
 | `migrations`                   | Пары SQL-файлов; продуктовых миграций пока нет   |
 | `tools`                        | Зафиксированные Go-инструменты разработки        |
 | `../../contracts/openapi.yaml` | Контракт реализованных HTTP-методов              |
-| `../../infra`                  | Локальный запуск PostgreSQL и API                |
+| `../../infra`                  | Общий локальный запуск PWA, API и PostgreSQL     |
 
 Сервер обрабатывает соединения конкурентно. Отдельная goroutine запускает listener; канал передаёт результат его работы, а канал готовности и `sync.Once` согласуют запуск с возможным ранним сигналом остановки. Контексты задают срок выполнения запросов, проверки БД и завершения приложения. Во время штатной остановки текущим запросам даётся время завершиться; по истечении срока их контексты отменяются.
 
@@ -177,14 +177,14 @@ cp apps/api/.env.example apps/api/.env
 cp apps/api/.env.migrate.example apps/api/.env.migrate
 ```
 
-Заменить заглушки в `infra/.env` разными локальными паролями. В API `.env` указать `DB_PASSWORD`, совпадающий с `APP_DB_PASSWORD`; в `.env.migrate` — пароль из `MIGRATOR_DB_PASSWORD`. При изменении `POSTGRES_PORT` согласовать `DB_PORT` в обоих файлах API.
+Заполнить пустые поля паролей в `infra/.env` разными локальными значениями. В API `.env` указать `DB_PASSWORD`, совпадающий с `APP_DB_PASSWORD`; в `.env.migrate` — пароль из `MIGRATOR_DB_PASSWORD`. Пустые пароли отклоняются проверкой конфигурации. При изменении `POSTGRES_PORT` согласовать `DB_PORT` в обоих файлах API.
 
 ### Настройка базы данных
 
 Из корня репозитория:
 
 ```sh
-docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait postgres
+docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait postgres
 ```
 
 Из `apps/api`:
@@ -305,14 +305,14 @@ docker compose --env-file infra/.env -f infra/compose.yaml run --rm migrate down
 Из корня репозитория после заполнения `infra/.env`:
 
 ```sh
-docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait postgres
+docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait postgres
 docker compose --env-file infra/.env -f infra/compose.yaml run --rm --build migrate up
 docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait api
 ```
 
 Эти команды запускают только API и PostgreSQL. API публикуется на `http://127.0.0.1:8081`; порт меняется через `API_PORT` в `infra/.env`.
 
-Общий запуск со статической PWA и шлюзом — `task infra:up` из корня. Caddy на `http://127.0.0.1:8080` направляет `/api` и `/api/*` в Go с удалением префикса: `/api/readyz` соответствует внутреннему `/readyz`. `task infra:check` проверяет шлюз и готовность API. Это техническая маршрутизация; продуктовый API-клиент PWA и пользовательские методы пока не реализованы. Подробности — в [README инфраструктуры](../../infra/README.md).
+Общий запуск со статической PWA и шлюзом — `task up` из корня. Caddy на `http://127.0.0.1:8080` направляет `/api` и `/api/*` в Go с удалением префикса: `/api/readyz` соответствует внутреннему `/readyz`. `task check` проверяет шлюз, страницу PWA и готовность API с БД. Это техническая маршрутизация; продуктовый API-клиент PWA и пользовательские методы пока не реализованы. Подробности — в [README инфраструктуры](../../infra/README.md).
 
 Собрать образы отдельно:
 

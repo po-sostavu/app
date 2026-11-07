@@ -40,7 +40,7 @@ API ждёт готовности PostgreSQL, шлюз — healthcheck API. `GET
 cp infra/.env.example infra/.env
 ```
 
-Заменить три заглушки разными локальными паролями. `.env` исключён из Git. Для паролей с символом `$` использовать одинарные кавычки в env-файле, чтобы Compose не выполнил подстановку. Не публиковать вывод `docker compose config`: он содержит подставленные значения. Для проверки синтаксиса есть `config --quiet`.
+Заполнить три пустых поля разными локальными паролями. Без паролей `task up` останавливается на проверке конфигурации до создания БД. `.env` исключён из Git. Для паролей с символом `$` использовать одинарные кавычки в env-файле, чтобы Compose не выполнил подстановку. Не публиковать вывод `docker compose config`: он содержит подставленные значения. Для проверки синтаксиса есть `config --quiet`.
 
 | Переменная             | Назначение                         | По умолчанию |
 | ---------------------- | ---------------------------------- | ------------ |
@@ -56,41 +56,44 @@ cp infra/.env.example infra/.env
 После заполнения конфигурации:
 
 ```sh
-task infra:up
+task up
 ```
 
-Команда проверяет конфигурацию, ждёт готовности БД, выполняет миграции отдельным контейнером, собирает и запускает API со шлюзом, затем проверяет `/healthz` и `/api/readyz` через шлюз. Ошибка любого шага останавливает команду; при ошибке миграции следующий шаг запуска приложений не выполняется.
+Команда проверяет конфигурацию, собирает образ PostgreSQL и ждёт готовности БД, выполняет миграции отдельным контейнером, собирает и запускает API со шлюзом, затем проверяет `/healthz`, страницу PWA и `/api/readyz` через шлюз. Ошибка любого шага останавливает команду; при ошибке миграции следующий шаг запуска приложений не выполняется.
 
 Эквивалентный запуск без Task:
 
 ```sh
 docker compose --env-file infra/.env -f infra/compose.yaml config --quiet
-docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait postgres
+docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait postgres
 docker compose --env-file infra/.env -f infra/compose.yaml run --rm --build migrate up
 docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait --wait-timeout 90 gateway
 docker compose --env-file infra/.env -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/healthz
+docker compose --env-file infra/.env -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/
 docker compose --env-file infra/.env -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/api/readyz
 ```
 
 Открыть `http://127.0.0.1:8080`: доступны экраны PWA `/` и `/profile`. `http://127.0.0.1:8080/api/readyz` при доступной БД возвращает HTTP 200 и `{"status":"ok"}`. `--wait` проверяет контейнерные healthchecks, поэтому readiness отдельно проверяется через шлюз. Пока продуктовых миграций нет, команда миграции `up` сообщает об отсутствии новых миграций; это нормальное состояние каркаса.
 
 ```sh
-task infra:check
-task infra:ps
-task infra:logs
+task check
+task ps
+task logs
 ```
+
+`task check` проверяет шлюз, страницу PWA и готовность API с БД. Общие команды `up`, `check`, `ps`, `logs` и `down` относятся ко всему приложению.
 
 Для запуска Go на компьютере достаточно поднять `postgres`. В конфигурации API указать `DB_HOST=127.0.0.1`, опубликованный `DB_PORT`, `DB_USER=posostavu_app`, соответствующий пароль и `DB_SSLMODE=disable`. Подробнее — [README API](../apps/api/README.md).
 
-Для работы над интерфейсом остаётся `npm run dev` из `apps/pwa` на `http://127.0.0.1:5173`. Это отдельный режим с hot reload, без общего reverse proxy. Контейнерный шлюз отдаёт готовую PWA; после изменения интерфейса выполнить `task infra:up`, чтобы пересобрать образ.
+Для работы над интерфейсом остаётся `npm run dev` из `apps/pwa` на `http://127.0.0.1:5173`. Это отдельный режим с hot reload, без общего reverse proxy. Контейнерный шлюз отдаёт готовую PWA; после изменения интерфейса выполнить `task up`, чтобы пересобрать образ.
 
 `DB_SSLMODE=disable` применяется только к этой локальной конфигурации. Для внешней БД нужна проверка TLS; настройки окружения развёртывания определяются отдельно.
 
-Команды отдельных сервисов сохраняются: `task db:up`, `task migrate:up`, `task api:up`. Для другого env-файла передать `COMPOSE_ENV=путь/к/.env` любой инфраструктурной задаче Task. Общая остановка — `task infra:down`.
+Команды отдельных сервисов сохраняются: `task db:up`, `task migrate:up`, `task api:up`. Для другого env-файла передать `COMPOSE_ENV=путь/к/.env` любой инфраструктурной задаче Task. Общая остановка — `task down`.
 
 ## Миграции
 
-Каталог `apps/api/migrations` смонтирован в `/migrations` только для чтения. Каждая команда запускает отдельный контейнер с миграционной ролью. `task infra:up` вызывает этот шаг до запуска приложений; entrypoint и перезапуск API миграций не выполняют.
+Каталог `apps/api/migrations` смонтирован в `/migrations` только для чтения. Каждая команда запускает отдельный контейнер с миграционной ролью. `task up` вызывает этот шаг до запуска приложений; entrypoint и перезапуск API миграций не выполняют.
 
 ```sh
 docker compose --env-file infra/.env -f infra/compose.yaml run --rm migrate version
@@ -119,7 +122,7 @@ docker compose --env-file infra/.env -f infra/compose.yaml run --rm migrate down
 Остановка через Task:
 
 ```sh
-task infra:down
+task down
 ```
 
 Эквивалентная команда Compose:
@@ -134,14 +137,15 @@ docker compose --env-file infra/.env -f infra/compose.yaml down
 
 ## Образы
 
-Dockerfile API использует Go `1.27.3` для сборки и Alpine `3.24.4` для выполнения. PostgreSQL — `18.6-alpine3.24`. Эти базовые образы зафиксированы digest; обновление выполняется отдельным изменением вместе со сборкой и проверкой запуска. Локальные образы — `posostavu-api:local`, `posostavu-migrate:local` и `posostavu-pwa:local`.
+Dockerfile API использует Go `1.27.3` для сборки и Alpine `3.24.4` для выполнения. Локальный образ PostgreSQL собирается из официального `18.6-alpine3.24` через [`postgres/Dockerfile`](postgres/Dockerfile). Эти базовые образы зафиксированы digest. В runtime API, миграций, PostgreSQL и шлюза устанавливается `zlib >= 1.4-r0`; обновление образов проверяется сборкой и запуском. Локальные образы — `posostavu-api:local`, `posostavu-migrate:local`, `posostavu-postgres:local` и `posostavu-pwa:local`.
 
 ```sh
 docker build --target api -t posostavu-api:local apps/api
 docker build --target migrate -t posostavu-migrate:local apps/api
+docker build --target runtime -t posostavu-postgres:local infra/postgres
 docker build -f apps/pwa/Dockerfile --target runtime -t posostavu-pwa:local .
 ```
 
-Контекст API и миграций — `apps/api`. Образ шлюза собирается существующим `apps/pwa/Dockerfile` из корня: Node.js собирает PWA, Caddy раздаёт статику и использует `infra/Caddyfile`. Отдельного Caddy в Go или второго веб-сервера нет. Корневой `.dockerignore` разрешает из `infra` только Caddyfile; env-файлы не входят в образ.
+Контекст API и миграций — `apps/api`, PostgreSQL — `infra/postgres`. Dockerfile PostgreSQL не копирует локальные файлы, его `.dockerignore` исключает весь контекст; скрипт инициализации ролей монтируется Compose только для чтения. Образ шлюза собирается существующим `apps/pwa/Dockerfile` из корня: Node.js собирает PWA, Caddy раздаёт статику и использует `infra/Caddyfile`. Отдельного Caddy в Go или второго веб-сервера нет. Корневой `.dockerignore` разрешает из `infra` только Caddyfile; env-файлы не входят в образ.
 
 Базовые образы PWA и ограничения их аудита описаны в [отчёте каркаса PWA](../openspec/changes/bootstrap-pwa/security-audit.md). Общий локальный запуск не означает их устранения или готовности конфигурации к публикации в интернете.

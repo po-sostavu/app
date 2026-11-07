@@ -16,39 +16,40 @@ tasks:
   db:up:
     desc: Запустить локальную PostgreSQL
     cmds:
-      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --wait postgres
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait postgres
 
   api:up:
     desc: Собрать и запустить API с PostgreSQL в Docker
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait api
 
-  infra:up:
+  up:
     desc: Собрать и запустить PWA, API и PostgreSQL с миграциями
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml config --quiet
       - task: db:up
       - task: migrate:up
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait --wait-timeout 90 gateway
-      - task: infra:check
+      - task: check
 
-  infra:check:
-    desc: Проверить жизнь шлюза и готовность API через общий адрес
+  check:
+    desc: Проверить PWA, шлюз и готовность API через общий адрес
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/healthz
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/api/readyz
 
-  infra:ps:
+  ps:
     desc: Показать состояние локальных сервисов
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml ps
 
-  infra:logs:
+  logs:
     desc: Смотреть последние сообщения и новые логи локальных сервисов
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml logs --tail 100 -f
 
-  infra:down:
+  down:
     desc: Остановить локальное окружение, сохранив данные PostgreSQL
     cmds:
       - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml down
