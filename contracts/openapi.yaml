@@ -1,0 +1,138 @@
+openapi: 3.1.1
+info:
+  title: ПоСоставу API
+  version: 0.0.0
+  description: |
+    Контракт технического каркаса. Реализованы только проверки жизни и готовности.
+    Продуктовые методы и идентификация пользователя добавляются отдельными изменениями.
+    Неизвестные маршруты возвращают HTTP 404 с ErrorResponse и кодом not_found.
+    Ошибки шлюза и сетевые ошибки находятся за пределами этого контракта приложения.
+servers:
+  - url: http://127.0.0.1:8081
+    description: Локальный API
+security: []
+tags:
+  - name: Health
+    description: Служебные проверки без доступа к пользовательским данным
+paths:
+  /livez:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Проверить жизнь HTTP-процесса
+      description: Не обращается к PostgreSQL или внешним сервисам.
+      responses:
+        '200':
+          $ref: '#/components/responses/Healthy'
+        default:
+          $ref: '#/components/responses/Error'
+  /readyz:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      summary: Проверить готовность API
+      description: |
+        Проверяет PostgreSQL через PingContext с ограниченным временем ожидания.
+        Ошибка или тайм-аут зависимости возвращают 503, процесс API продолжает работу.
+        Проверка не подтверждает наличие продуктовой схемы или готовность будущих OCR/ИИ-интеграций.
+      responses:
+        '200':
+          $ref: '#/components/responses/Healthy'
+        '503':
+          description: PostgreSQL недоступна или проверка превысила deadline
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: dependency_unavailable
+                  message: Service is not ready
+                  request_id: server-generated-id
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  headers:
+    RequestID:
+      description: Серверный идентификатор запроса; входящий X-Request-ID не используется
+      schema:
+        type: string
+        minLength: 1
+    NoStore:
+      description: Запрет кэширования ответа
+      schema:
+        type: string
+        const: no-store
+  responses:
+    Healthy:
+      description: Проверка успешна
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusResponse'
+          example:
+            status: ok
+    Error:
+      description: |
+        Безопасная ошибка приложения. Возможные соответствия HTTP-статусу:
+        400 bad_request; 404 not_found; 405 method_not_allowed;
+        408 или 504 request_timeout; 413 payload_too_large; 431 headers_too_large;
+        500 internal_error; 503 dependency_unavailable или service_unavailable.
+        Транспорт может закрыть соединение без JSON-ответа при нарушении протокола.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    StatusResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              enum:
+                - bad_request
+                - not_found
+                - method_not_allowed
+                - request_timeout
+                - payload_too_large
+                - headers_too_large
+                - internal_error
+                - dependency_unavailable
+                - service_unavailable
+            message:
+              type: string
+              description: Безопасное сообщение без SQL, секретов и внутренней ошибки зависимости
+            request_id:
+              type: string
+              minLength: 1
+              description: Совпадает с заголовком X-Request-ID
