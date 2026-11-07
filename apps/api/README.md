@@ -310,7 +310,9 @@ docker compose --env-file infra/.env -f infra/compose.yaml run --rm --build migr
 docker compose --env-file infra/.env -f infra/compose.yaml up -d --build --wait api
 ```
 
-API публикуется только на `http://127.0.0.1:8081`. Изменить порт можно через `API_PORT` в `infra/.env`. PWA запускается независимо; браузерный клиент, CORS и общий reverse proxy в эту конфигурацию не включены.
+Эти команды запускают только API и PostgreSQL. API публикуется на `http://127.0.0.1:8081`; порт меняется через `API_PORT` в `infra/.env`.
+
+Общий запуск со статической PWA и шлюзом — `task infra:up` из корня. Caddy на `http://127.0.0.1:8080` направляет `/api` и `/api/*` в Go с удалением префикса: `/api/readyz` соответствует внутреннему `/readyz`. `task infra:check` проверяет шлюз и готовность API. Это техническая маршрутизация; продуктовый API-клиент PWA и пользовательские методы пока не реализованы. Подробности — в [README инфраструктуры](../../infra/README.md).
 
 Собрать образы отдельно:
 
@@ -321,7 +323,7 @@ docker build --target migrate -t posostavu-migrate:local apps/api
 
 Сборочный контекст — `apps/api`. В runtime остаются бинарник и доверенные CA-сертификаты; Go-инструментов и локальных env-файлов в образе нет. API и миграции запускаются с UID/GID `10001:10001`. Compose ограничивает права контейнеров и использует отдельные роли БД.
 
-Локальный Compose не является production-развёртыванием. Общий Caddy в `infra` в дальнейшем будет обеспечивать HTTPS, раздачу PWA и маршрутизацию в отдельный Go-сервис. Встраивать Caddy в приложение Go не требуется.
+Локальный Compose не является production-развёртыванием. Общий Caddy использует `infra/Caddyfile`, отдаёт PWA и проксирует запросы в отдельный Go-сервис. Он работает по HTTP на loopback; внешний HTTPS и CD настраиваются отдельно. Caddy не встраивается в Go-приложение.
 
 ## Команды
 
