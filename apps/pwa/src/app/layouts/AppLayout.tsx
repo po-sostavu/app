@@ -2,6 +2,8 @@ import { Anchor, AppShell, Group, Stack, Text } from '@mantine/core';
 import { IconScan, IconUserCircle } from '@tabler/icons-react';
 import { Link, NavLink, Outlet } from 'react-router';
 
+import { InstallAppButton } from '@/features/install-app';
+
 import { PwaStatus } from '../pwa/PwaStatus';
 import styles from './AppLayout.module.css';
 
@@ -22,13 +24,19 @@ export function AppLayout() {
         Перейти к содержимому
       </a>
       <AppShell.Header>
-        <Group className={`${styles.container} ${styles.toolbar}`}>
+        <Group
+          className={`${styles.container} ${styles.toolbar}`}
+          justify="space-between"
+          wrap="nowrap"
+          gap="sm"
+        >
           <Anchor component={Link} to="/" className={styles.brand} underline="never" c="inherit">
             <img src="/logo.png" alt="" width="32" height="32" />
             <Text component="span" size="lg" fw={600}>
               ПоСоставу
             </Text>
           </Anchor>
+          <InstallAppButton />
         </Group>
       </AppShell.Header>
       <AppShell.Main id="main-content" tabIndex={-1}>
