@@ -60,6 +60,7 @@ export default defineConfig(({ mode, command }) => {
           display: 'standalone',
           theme_color: '#386B55',
           background_color: '#F7F9F5',
+          related_applications: [{ platform: 'webapp', url: '/manifest.webmanifest' }],
           icons: [
             { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
