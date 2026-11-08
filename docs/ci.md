@@ -1,6 +1,6 @@
 # Проверки CI
 
-Конфигурация — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Это часть [PRD-31](https://linear.app/po-sostavu/issue/PRD-31): проверки PWA, Go API и контейнерной сборки. CD настраивается отдельно. Для VPS принят blue-green деплой проверенного коммита `main` по [регламенту релизов](configuration-and-releases.md#5-blue-green-развёртывание).
+Конфигурация — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Это часть [PRD-31](https://linear.app/po-sostavu/issue/PRD-31): проверки PWA, Go API и контейнерной сборки. [CD](cd.md) работает в отдельном workflow. На VPS выполняется blue-green деплой проверенного коммита `main` по [регламенту релизов](configuration-and-releases.md#5-blue-green-развёртывание).
 
 ## Запуск и результат
 
