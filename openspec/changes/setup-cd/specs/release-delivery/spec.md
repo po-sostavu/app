@@ -45,3 +45,18 @@
 #### Scenario: Application rollback
 - **WHEN** предыдущий комплект снова принимает трафик
 - **THEN** файлы обоих выпусков доступны, данные PostgreSQL сохранены
+
+### Requirement: Explicit test deployment
+Система SHALL требовать подтверждённое восстановление для рабочего режима и при отсутствии режима в конфигурации. Только явный `mode: test` SHALL разрешать выкладку без `recovery_verified` для стенда с заменяемыми тестовыми данными. Флаг enabled, локальная копия перед миграцией и остальные проверки остаются обязательными.
+
+#### Scenario: Production recovery not verified
+- **WHEN** mode отсутствует или равен production, а recovery_verified равен false
+- **THEN** запрос отклоняется до операций Docker
+
+#### Scenario: Explicit test mode
+- **WHEN** mode равен test, enabled равен true и остальные проверки пройдены
+- **THEN** отсутствие подтверждения восстановления не блокирует выкладку, копия перед миграцией выполняется
+
+#### Scenario: Unknown or disabled mode
+- **WHEN** mode неизвестен или enabled равен false
+- **THEN** запрос отклоняется до операций Docker независимо от recovery_verified
