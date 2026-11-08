@@ -1,0 +1,106 @@
+version: '3'
+
+vars:
+  ENV_FILE: .env
+  MIGRATE_ENV_FILE: .env.migrate
+  EXE: '{{if eq OS "windows"}}.exe{{end}}'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  run:
+    desc: Запустить API с локальным env-файлом
+    cmds:
+      - go run ./cmd/api -env-file {{.ENV_FILE | shellQuote}}
+
+  fmt:
+    desc: Отформатировать Go-код стандартным gofmt
+    cmds:
+      - gofmt -w cmd internal
+
+  fmt:check:
+    desc: Проверить формат без изменения файлов
+    cmds:
+      - |
+        files="$(gofmt -l cmd internal)" || exit 1
+        if [ -n "$files" ]; then
+          printf '%s\n' "$files"
+          exit 1
+        fi
+
+  lint:
+    desc: Проверить код закреплённым golangci-lint
+    cmds:
+      - go tool '-modfile=tools/go.mod' golangci-lint run ./...
+
+  test:
+    desc: Выполнить Go-тесты
+    cmds:
+      - go test ./...
+
+  test:race:
+    desc: Проверить гонки памяти (нужны CGO и C-компилятор)
+    cmds:
+      - go test -race ./...
+
+  build:
+    desc: Собрать бинарники API и миграций
+    cmds:
+      - go build -trimpath -o bin/api{{.EXE}} ./cmd/api
+      - go build -trimpath -o bin/migrate{{.EXE}} ./cmd/migrate
+
+  audit:
+    desc: Проверить известные уязвимости Go-зависимостей
+    cmds:
+      - go tool '-modfile=tools/go.mod' govulncheck ./...
+
+  check:
+    desc: Проверить формат, линтер, тесты и сборку
+    cmds:
+      - task: fmt:check
+      - task: lint
+      - task: test
+      - task: build
+
+  migrate:create:
+    desc: Создать миграцию (NAME=add_profiles)
+    requires:
+      vars: [NAME]
+    cmds:
+      - go run ./cmd/migrate create {{.NAME | shellQuote}}
+
+  migrate:up:
+    desc: Применить миграции через локальную Go-команду
+    cmds:
+      - go run ./cmd/migrate -env-file {{.MIGRATE_ENV_FILE | shellQuote}} up
+
+  migrate:down:
+    desc: Откатить одну миграцию
+    cmds:
+      - go run ./cmd/migrate -env-file {{.MIGRATE_ENV_FILE | shellQuote}} down
+
+  migrate:version:
+    desc: Посмотреть версию и dirty-состояние
+    cmds:
+      - go run ./cmd/migrate -env-file {{.MIGRATE_ENV_FILE | shellQuote}} version
+
+  migrate:down:all:
+    desc: Откатить все миграции (CONFIRM=yes)
+    requires:
+      vars:
+        - name: CONFIRM
+          enum: [yes]
+    cmds:
+      - go run ./cmd/migrate -env-file {{.MIGRATE_ENV_FILE | shellQuote}} -confirm down-all
+
+  migrate:force:
+    desc: Исправить только метаданные версии после ручного восстановления (VERSION=... CONFIRM=yes)
+    requires:
+      vars:
+        - VERSION
+        - name: CONFIRM
+          enum: [yes]
+    cmds:
+      - go run ./cmd/migrate -env-file {{.MIGRATE_ENV_FILE | shellQuote}} -confirm force {{.VERSION | shellQuote}}

@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "mode": "production",
+  "recovery_verified": false,
+  "domain": "posostavu.ivanzubkov.ru",
+  "edge_network": "gateway",
+  "traefik_directory": "/REPLACE_WITH_HOST_DIRECTORY_MOUNTED_IN_TRAEFIK",
+  "http_entrypoint": "REPLACE_WITH_HTTP_ENTRYPOINT",
+  "https_entrypoint": "REPLACE_WITH_HTTPS_ENTRYPOINT",
+  "cert_resolver": "REPLACE_WITH_POSOSTAVU_RESOLVER",
+  "observe_seconds": 120,
+  "reserve_memory_mib": 256,
+  "reserve_disk_mib": 2048
+}

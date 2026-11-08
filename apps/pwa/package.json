@@ -1,0 +1,64 @@
+{
+  "name": "@posostavu/pwa",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fsd": "steiger ./src --fail-on-warnings",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "audit": "npm audit",
+    "check": "npm run format:check && npm run lint && npm run lint:fsd && npm run typecheck && npm test",
+    "generate:icons": "pwa-assets-generator --config pwa-assets.config.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "5.3.0",
+    "@mantine/core": "9.7.5",
+    "@mantine/hooks": "9.7.5",
+    "@tabler/icons-react": "3.50.0",
+    "@tanstack/react-query": "5.107.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "7.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@feature-sliced/steiger-plugin": "0.8.2",
+    "@trivago/prettier-plugin-sort-imports": "6.0.2",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vite-pwa/assets-generator": "2.0.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.14.0",
+    "postcss": "8.5.32",
+    "postcss-preset-mantine": "1.18.0",
+    "prettier": "3.9.10",
+    "steiger": "0.9.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "5.1.0"
+  },
+  "overrides": {
+    "minimatch@>=7 <12": "11.0.5",
+    "glob@>=9 <14.0.2": "14.0.4"
+  }
+}

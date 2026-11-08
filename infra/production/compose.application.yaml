@@ -1,0 +1,74 @@
+x-app: &app
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  restart: unless-stopped
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  api:
+    <<: *app
+    image: ${API_IMAGE:?Set a verified digest}
+    env_file:
+      - path: ${DEPLOY_SECRETS:?}/api.env
+        format: raw
+    environment:
+      HTTP_ADDR: :8081
+      HTTP_CONCURRENCY: '64'
+      DB_HOST: posostavu-database
+      DB_NAME: posostavu
+      DB_USER: posostavu_app
+      DB_SSLMODE: disable
+      DB_MAX_OPEN_CONNS: '5'
+      DB_MAX_IDLE_CONNS: '2'
+    networks: [application, database]
+    mem_limit: 256m
+    cpus: 0.5
+
+  gateway:
+    <<: *app
+    image: ${PWA_IMAGE:?Set a verified digest}
+    environment:
+      RELEASE_SHA: ${RELEASE_SHA:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${ASSET_DIRECTORY:?}:/srv/history:ro
+    networks:
+      application:
+      edge:
+        aliases: ['${GATEWAY_ALIAS:?}']
+    depends_on:
+      api:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.25
+
+  migrate:
+    <<: *app
+    profiles: [tools]
+    restart: 'no'
+    image: ${MIGRATE_IMAGE:?Set a verified digest}
+    env_file:
+      - path: ${DEPLOY_SECRETS:?}/migrate.env
+        format: raw
+    environment:
+      DB_HOST: posostavu-database
+      DB_NAME: posostavu
+      DB_USER: posostavu_migrator
+      DB_SSLMODE: disable
+    networks: [database]
+    mem_limit: 128m
+    cpus: 0.5
+
+networks:
+  application:
+  database:
+    external: true
+    name: ${DATABASE_NETWORK:?}
+  edge:
+    external: true
+    name: ${EDGE_NETWORK:?}

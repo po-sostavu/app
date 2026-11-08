@@ -1,0 +1,27 @@
+# Локальная конфигурация и секреты; в Git остаются только безопасные примеры.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Зависимости и результаты сборки.
+node_modules/
+dist/
+coverage/
+
+# Локальные Go-бинарники и результаты проверок.
+apps/api/bin/
+apps/api/migrations/.create.lock
+*.test
+*.prof
+.task/
+
+# Серверные настройки, архивы и состояние CD
+tools/delivery/bin/
+infra/production/config.json
+infra/production/*.env
+infra/production/state.json
+infra/production/in-progress.json
+infra/production/last-error.json
+*.dump
+*.tar.gz
