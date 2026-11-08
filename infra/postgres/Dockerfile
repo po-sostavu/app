@@ -2,7 +2,7 @@ FROM golang:1.27.3-alpine3.24@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf3
 
 ENV CGO_ENABLED=0 GOTOOLCHAIN=local
 ADD --checksum=sha256:207a2045e890d3ca3326027c5f585733085960b401a49dbc00e3bb628c054cf8 \
-    https://github.com/tianon/gosu/archive/refs/tags/1.20.tar.gz /tmp/gosu.tar.gz
+    https://codeload.github.com/tianon/gosu/tar.gz/refs/tags/1.20 /tmp/gosu.tar.gz
 WORKDIR /src
 RUN tar -xzf /tmp/gosu.tar.gz --strip-components=1
 RUN --mount=type=cache,target=/go/pkg/mod \
