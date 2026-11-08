@@ -19,7 +19,7 @@ AGENTS.md
 - Все схемы и диаграммы проекта оформлять в Mermaid в блоках кода mermaid внутри Markdown. Хранить исходник рядом с описанием, обновлять вместе с изменением и проверять синтаксис и отображение. ASCII-схемами и картинками исходник не заменять
 GitFlow
 - Регламент команды — docs/git-flow.md. Конфигурации и релизы — docs/configuration-and-releases.md
-- CD выкладывает проверенный коммит `main` по blue-green: два комплекта PWA и API с общей БД. Порядок переключения, совместимость миграций и откат — docs/configuration-and-releases.md. Production-конфигурация подготовлена в infra/production, публикация и выкладка выключены до отдельного включения по docs/cd.md. Локальный infra/compose.yaml запускает один комплект
+- CD выкладывает проверенный коммит `main` по blue-green: два комплекта PWA и API с общей БД. Порядок переключения, совместимость миграций и откат — docs/configuration-and-releases.md. Production-конфигурация находится в infra/production. Переключатели публикации и выкладки, подтверждение Environment production и режим тестовых данных описаны в docs/cd.md. Локальный infra/compose.yaml запускает один комплект
 - Ветки:
   - main — релизы
   - develop — разработка
