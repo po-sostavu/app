@@ -1,6 +1,6 @@
 # Доставка выпуска
 
-CD по [PRD-31](https://linear.app/po-sostavu/issue/PRD-31) включён. Первый тестовый выпуск `0.1.0` развёрнут 8 ноября 2026 года на [posostavu.ivanzubkov.ru](https://posostavu.ivanzubkov.ru). Проверки и ограничения зафиксированы в [описании выпуска](releases/0.1.0.md).
+CD по [PRD-31](https://linear.app/po-sostavu/issue/PRD-31) включён. Тестовый выпуск `0.2.0` развёрнут 8 ноября 2026 года на [posostavu.ivanzubkov.ru](https://posostavu.ivanzubkov.ru), активный цвет — green. Проверки и ограничения зафиксированы в [описании выпуска](releases/0.2.0.md).
 
 ## CI и CD
 
