@@ -1,6 +1,6 @@
 # Регламент Git Flow и code review
 
-Регламент действует для [po-sostavu/app](https://github.com/po-sostavu/app). Задачи ведутся в Linear. Конфигурация [CI](ci.md) проверяет PWA, API и Docker-сборки для PR в `develop` и `main`. Автор указывает результат CI и применимые локальные и ручные проверки в PR. CD пока не настроен.
+Регламент действует для [po-sostavu/app](https://github.com/po-sostavu/app). Задачи ведутся в Linear. Конфигурация [CI](ci.md) проверяет PWA, API и Docker-сборки для PR в `develop` и `main`. Автор указывает результат CI и применимые локальные и ручные проверки в PR. [CD](cd.md) подготовлен, публикация образов и выкладка пока выключены.
 
 ## 1. Ветки
 
