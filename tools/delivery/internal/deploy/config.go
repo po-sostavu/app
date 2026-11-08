@@ -14,6 +14,7 @@ const Root = "/opt/po-sostavu"
 
 type Config struct {
 	Enabled          bool   `json:"enabled"`
+	Mode             string `json:"mode"`
 	RecoveryVerified bool   `json:"recovery_verified"`
 	Domain           string `json:"domain"`
 	EdgeNetwork      string `json:"edge_network"`
@@ -24,6 +25,22 @@ type Config struct {
 	ObserveSeconds   int    `json:"observe_seconds"`
 	ReserveMemoryMiB int    `json:"reserve_memory_mib"`
 	ReserveDiskMiB   int    `json:"reserve_disk_mib"`
+}
+
+func (config Config) validateMode() error {
+	if !config.Enabled {
+		return errors.New("deployment not enabled")
+	}
+	switch config.Mode {
+	case "", "production":
+		if !config.RecoveryVerified {
+			return errors.New("production recovery not verified")
+		}
+	case "test":
+	default:
+		return errors.New("unknown deployment mode")
+	}
+	return nil
 }
 
 func LoadConfig(root string) (Config, error) {
@@ -83,8 +100,8 @@ func LoadConfig(root string) (Config, error) {
 	if err := release.StrictJSON(raw, &config); err != nil {
 		return config, err
 	}
-	if !config.Enabled || !config.RecoveryVerified {
-		return config, errors.New("production not enabled and recovery not verified")
+	if err := config.validateMode(); err != nil {
+		return config, err
 	}
 	if !regexp.MustCompile(`^[a-z0-9]+(?:[.-][a-z0-9]+)*$`).MatchString(config.Domain) {
 		return config, errors.New("invalid domain")

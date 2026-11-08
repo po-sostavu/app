@@ -1,5 +1,6 @@
 {
   "enabled": false,
+  "mode": "production",
   "recovery_verified": false,
   "domain": "posostavu.ivanzubkov.ru",
   "edge_network": "gateway",

@@ -182,7 +182,7 @@ func TestDeployIdempotenceRollbackAndDatabase(t *testing.T) {
 }
 
 func TestFailuresPreserveRouteAndState(t *testing.T) {
-	for _, failure := range []string{"resources", "migration", "candidate", "public"} {
+	for _, failure := range []string{"resources", "backup", "migration", "candidate", "public"} {
 		t.Run(failure, func(t *testing.T) {
 			e, f := fixture(t)
 			first, second := testRelease(1), testRelease(2)
@@ -200,7 +200,18 @@ func TestFailuresPreserveRouteAndState(t *testing.T) {
 			if string(raw) != "blue" || readState(t, e).Release.SHA != first.SHA {
 				t.Fatal("active release changed")
 			}
-			if failure != "resources" {
+			if failure == "backup" {
+				migrations := 0
+				for _, operation := range f.operations {
+					if operation == "migration" {
+						migrations++
+					}
+				}
+				if migrations != 1 {
+					t.Fatal("migration started after backup failure")
+				}
+			}
+			if failure != "resources" && failure != "backup" {
 				third := testRelease(3)
 				if err := e.Execute(&third, nil); err == nil || !strings.Contains(err.Error(), "unfinished") {
 					t.Fatal("unfinished deployment did not block retry")
