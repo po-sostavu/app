@@ -16,3 +16,8 @@ apps/pwa/AGENTS.md
 !infra
 infra/**
 !infra/Caddyfile
+!infra/caddy
+infra/caddy/**
+!infra/caddy/go.mod
+!infra/caddy/go.sum
+!infra/caddy/main.go
