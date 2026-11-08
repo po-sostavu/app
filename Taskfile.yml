@@ -1,0 +1,82 @@
+version: '3'
+
+includes:
+  api:
+    taskfile: ./apps/api/Taskfile.yml
+    dir: ./apps/api
+  cd:
+    taskfile: ./tools/delivery/Taskfile.yml
+    dir: ./tools/delivery
+
+vars:
+  COMPOSE_ENV: infra/.env
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  db:up:
+    desc: Запустить локальную PostgreSQL
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait postgres
+
+  api:up:
+    desc: Собрать и запустить API с PostgreSQL в Docker
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait api
+
+  up:
+    desc: Собрать и запустить PWA, API и PostgreSQL с миграциями
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml config --quiet
+      - task: db:up
+      - task: migrate:up
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml up -d --build --wait --wait-timeout 90 gateway
+      - task: check
+
+  check:
+    desc: Проверить PWA, шлюз и готовность API через общий адрес
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/healthz
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml exec -T gateway wget -q -T 5 -O /dev/null http://127.0.0.1:8080/api/readyz
+
+  ps:
+    desc: Показать состояние локальных сервисов
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml ps
+
+  logs:
+    desc: Смотреть последние сообщения и новые логи локальных сервисов
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml logs --tail 100 -f
+
+  down:
+    desc: Остановить локальное окружение, сохранив данные PostgreSQL
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml down
+
+  migrate:create:
+    desc: Создать последовательную SQL-пару (NAME=add_profiles)
+    requires:
+      vars: [NAME]
+    cmds:
+      - task: api:migrate:create
+        vars:
+          NAME: '{{.NAME}}'
+
+  migrate:up:
+    desc: Применить новые миграции отдельным контейнером
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml run --rm --build migrate up
+
+  migrate:down:
+    desc: Откатить одну миграцию в локальном окружении
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml run --rm --build migrate down
+
+  migrate:version:
+    desc: Посмотреть версию и dirty-состояние локальной БД
+    cmds:
+      - docker compose --env-file {{.COMPOSE_ENV | shellQuote}} -f infra/compose.yaml run --rm --build migrate version

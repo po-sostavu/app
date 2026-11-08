@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Set a verified digest}
+    restart: unless-stopped
+    env_file:
+      - path: ${DEPLOY_SECRETS:?}/postgres.env
+        format: raw
+    environment:
+      POSTGRES_DB: posostavu
+      POSTGRES_USER: postgres
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: ['postgres', '-c', 'max_connections=40', '-c', 'shared_buffers=128MB']
+    volumes:
+      - data:/var/lib/postgresql
+      - ./init.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    networks:
+      database:
+        aliases: [posostavu-database]
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', 'posostavu']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/run/postgresql:size=8m,mode=3775
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+volumes:
+  data:
+
+networks:
+  database:
+    name: ${DATABASE_NETWORK:?}
+    internal: true
